@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+    /* Primary */
+    --color-primary: rgb(8, 92, 235);
+
+    /* Dark navy palette */
+    --color-background-dark: #0f172a;
+    --color-surface-dark: #1e293b;
+    --color-border-dark: #334155;
+
+    /* Legacy tokens kept for compatibility */
+    --color-app-bg: #0f172a;
+    --color-app-surface: #1e293b;
+    --color-app-panel: #1e293b;
+    --color-app-border: #334155;
+    --color-app-text: #f1f5f9;
+    --color-app-muted: #94a3b8;
+    --color-app-accent: #9726ed;
+    --color-panel-dark: #1e293b;
+}
+
+@layer base {
+
+    /* Alpine.js cloak */
+    [x-cloak] {
+        display: none !important;
+    }
+
+    html,
+    body {
+        background-color: var(--color-background-dark);
+        color: var(--color-app-text);
+        font-family: var(--font-sans);
+    }
+
+    button {
+        cursor: pointer;
+    }
+
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .icon-opt {
+        border-radius: 0.5rem;
+        transition: background 0.12s ease;
+    }
+
+    .icon-opt:hover {
+        background: #1e293b;
+    }
+
+    .icon-opt.chosen {
+        background: #1e293b;
+        outline: 2px solid var(--color-primary);
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+    }
+}

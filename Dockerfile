@@ -17,7 +17,7 @@ RUN npm run build
 # ─────────────────────────────────────────────────────────────
 # Stage 2 – PHP-FPM application image (Debian-based)
 # ─────────────────────────────────────────────────────────────
-FROM php:8.2-fpm AS app
+FROM php:8.4-fpm AS app
 
 # Install system dependencies via apt (pre-built binaries – fast)
 RUN apt-get update && apt-get install -y --no-install-recommends \

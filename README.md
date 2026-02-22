@@ -8,6 +8,9 @@
 # 1. Clone the repository
 git clone https://github.com/your-org/todo-app.git
 cd todo-app
+
+# 2. Create your local Docker env file from the example
+cp .env.docker.example .env.docker
 ```
 
 Open `.env.docker` and set your **Gemini API key**:
@@ -17,10 +20,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ```bash
-# 2. Build and start all services (DB + App + Nginx) in the background
+# 3. Build and start all services (DB + App + Nginx) in the background
 docker compose up --build -d
 
-# 3. Open the app in your browser
+# 4. Open the app in your browser
 #    http://localhost:8000
 ```
 

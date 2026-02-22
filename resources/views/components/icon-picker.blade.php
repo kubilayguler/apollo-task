@@ -1,11 +1,3 @@
-{{--
-    Reusable icon picker grid.
-    Props:
-      $name    = form field name (default: 'icon')
-      $current = currently selected icon (default: 'folder')
-      $icons   = array of icon names
-      $id      = unique id for this picker instance (default: 'icon-picker-default')
---}}
 @props([
     'name' => 'icon',
     'current' => 'folder',

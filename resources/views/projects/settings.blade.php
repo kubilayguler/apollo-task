@@ -48,12 +48,14 @@
     <header
         class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3
                border-b border-border-dark bg-background-dark/80 px-4 sm:px-6 backdrop-blur-md">
+        <button onclick="toggleSidebar()" class="lg:hidden p-1.5 rounded-lg hover:bg-surface-dark text-app-muted">
+            <span class="material-symbols-outlined text-xl">menu</span>
+        </button>
         <a href="{{ route('dashboard', ['project' => $project->id]) }}"
             class="p-1.5 rounded-lg hover:bg-surface-dark text-app-muted transition-colors">
             <span class="material-symbols-outlined text-xl">arrow_back</span>
         </a>
         <div class="flex items-center gap-2 min-w-0">
-            <span class="material-symbols-outlined text-[18px] text-primary shrink-0">{{ $project->icon ?? 'folder' }}</span>
             <h2 class="text-sm font-bold truncate">{{ $project->name }}</h2>
         </div>
         <span
@@ -123,10 +125,12 @@
                     </div>
 
                     <div class="flex justify-end">
-                        <flux:button type="submit" variant="primary" class="inline-flex items-center gap-2">
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-2
+                                   text-sm font-semibold text-white hover:opacity-90 transition-opacity">
                             <span class="material-symbols-outlined text-[17px]">save</span>
                             Save Changes
-                        </flux:button>
+                        </button>
                     </div>
                 </form>
             </section>

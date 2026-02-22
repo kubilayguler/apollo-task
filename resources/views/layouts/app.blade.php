@@ -97,7 +97,7 @@
             class="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden" style="display:none"></div>
 
         <aside id="sidebar" :class="sidebarOpen ? 'open' : ''"
-            class="fixed lg:relative z-40 flex w-72 h-full shrink-0 flex-col border-r border-border-dark bg-[#0a1120] lg:bg-surface-dark/50">
+            class="fixed lg:relative z-40 flex w-72 h-full shrink-0 flex-col border-r border-border-dark bg-surface-dark">
             <div class="flex items-center justify-between p-5 shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
@@ -111,6 +111,15 @@
                 </button>
             </div>
 
+            <div class="px-3 pb-4 shrink-0">
+                <a href="/" @click="closeSidebar()"
+                    class="group flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors text-app-text hover:bg-surface-dark">
+                    <span
+                        class="material-symbols-outlined text-[18px] shrink-0 text-app-muted group-hover:text-primary transition-colors">home</span>
+                    <span class="flex-1 truncate text-sm font-medium">Home</span>
+                </a>
+            </div>
+
             <div class="px-3 flex-1 overflow-y-auto">
                 <p class="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-app-muted">My Projects
                 </p>
@@ -120,7 +129,7 @@
                         <a href="{{ route('dashboard', ['project' => $navProject->id]) }}" @click="closeSidebar()"
                             class="group flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors {{ $active ? 'bg-primary/15 text-primary' : 'text-app-text hover:bg-surface-dark' }}">
                             <span
-                                class="material-symbols-outlined text-[18px] shrink-0 {{ $active ? 'text-primary' : 'text-app-muted' }}">{{ $navProject->icon ?? 'folder' }}</span>
+                                class="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors shrink-0 {{ $active ? 'text-primary' : 'text-app-muted' }}">{{ $navProject->icon ?? 'folder' }}</span>
                             <span class="flex-1 truncate text-sm font-medium">{{ $navProject->name }}</span>
                             @if (($navProject->tasks_count ?? 0) > 0)
                                 <span
@@ -143,7 +152,7 @@
                 <form action="{{ route('logout') }}" method="POST">
                     @csrf
                     <button type="submit"
-                        class="flex items-center justify-center gap-2 w-full p-2 rounded-lg bg-red-800/60 text-app-text hover:bg-red-700 transition-colors text-sm">
+                        class="flex items-center justify-center gap-2 w-full p-2 rounded-lg bg-red-700/80 text-app-text hover:bg-red-700 transition-colors text-sm">
                         <span class="material-symbols-outlined text-[16px]">logout</span>
                         Logout
                     </button>
@@ -152,14 +161,43 @@
         </aside>
 
         <main class="relative flex min-w-0 flex-1 flex-col bg-background-dark overflow-hidden">
-            @yield('main')
+            <!-- Global Skeleton -->
+            <div x-show="$store.global.loading" class="absolute inset-0 z-50 bg-background-dark flex flex-col">
+                <header
+                    class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border-dark bg-background-dark/80 px-4 sm:px-6">
+                    <div class="h-8 w-8 rounded-lg bg-surface-dark/40 animate-pulse"></div>
+                    <div class="h-6 w-32 rounded bg-surface-dark/40 animate-pulse"></div>
+                </header>
+                <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+                    <div class="mx-auto w-full max-w-4xl space-y-4">
+                        <div class="h-24 w-full rounded-xl bg-surface-dark/20 animate-pulse mb-6"></div>
+                        <div class="space-y-2">
+                            <template x-for="i in 4">
+                                <div
+                                    class="flex items-start gap-2.5 rounded-xl border border-border-dark bg-surface-dark/20 px-3 py-2.5 animate-pulse">
+                                    <div class="mt-0.5 h-5 w-5 shrink-0 rounded-md bg-surface-dark"></div>
+                                    <div class="min-w-0 flex-1 space-y-2 py-1">
+                                        <div class="h-3 w-3/4 rounded bg-surface-dark"></div>
+                                        <div class="h-2 w-1/4 rounded bg-surface-dark"></div>
+                                    </div>
+                                    <div class="h-5 w-12 rounded bg-surface-dark"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="!$store.global.loading" style="display: none;" class="flex-1 flex flex-col min-h-0">
+                @yield('main')
+            </div>
         </main>
     </div>
 
     <div id="new-project-modal" x-show="activeModal === 'new-project-modal'" x-on:click.self="closeModal()"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         style="display:none">
-        <div class="w-full max-w-lg rounded-2xl border border-border-dark bg-[#0f1f35] p-5 shadow-2xl">
+        <div class="w-full max-w-lg rounded-2xl border border-border-dark bg-background-dark p-5 shadow-2xl">
             <div class="flex items-center justify-between mb-5">
                 <h3 class="text-sm font-semibold">New Project</h3>
                 <button @click="closeModal()"
@@ -169,13 +207,13 @@
             </div>
             <form action="{{ route('projects.store') }}" method="POST" class="space-y-4">
                 @csrf
-                <x-icon-picker name="icon" :icons="$navIcons" />
                 <div>
                     <label
                         class="block mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Name</label>
                     <input type="text" name="name" required placeholder="Project name"
                         class="w-full rounded-lg border border-border-dark bg-background-dark px-3 py-2 text-sm text-app-text placeholder:text-app-muted focus:border-primary focus:outline-none">
                 </div>
+                <x-icon-picker name="icon" :icons="$navIcons" />
                 <div>
                     <label
                         class="block mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-app-muted">Description
@@ -198,11 +236,51 @@
 
     <script>
         document.addEventListener('alpine:init', () => {
+            Alpine.store('global', {
+                loading: true,
+                setLoading(val) {
+                    this.loading = val;
+                }
+            });
+
             Alpine.data('app', () => ({
                 sidebarOpen: false,
                 activeModal: null,
+                init() {
+                    setTimeout(() => {
+                        Alpine.store('global').setLoading(false);
+                    }, 300);
+
+                    // Intercept link clicks to show skeleton
+                    document.addEventListener('click', (e) => {
+                        const link = e.target.closest('a');
+                        if (link && link.href && !link.href.startsWith('#') && !link.href
+                            .startsWith('javascript:') && link.target !== '_blank' && !e
+                            .ctrlKey && !e.metaKey) {
+                            try {
+                                // Only show loading if it's a same-origin navigation
+                                if (new URL(link.href).origin === window.location.origin) {
+                                    Alpine.store('global').setLoading(true);
+                                }
+                            } catch (err) {
+                                // Ignore invalid URLs
+                            }
+                        }
+                    });
+
+                    // Intercept form submissions to show skeleton
+                    document.addEventListener('submit', (e) => {
+                        // Don't show skeleton for background forms (like task toggle)
+                        if (!e.target.classList.contains('task-toggle-form')) {
+                            Alpine.store('global').setLoading(true);
+                        }
+                    });
+                },
                 openSidebar() {
                     this.sidebarOpen = true;
+                },
+                toggleSidebar() {
+                    this.sidebarOpen = !this.sidebarOpen;
                 },
                 closeSidebar() {
                     this.sidebarOpen = false;
@@ -217,9 +295,13 @@
         });
 
         window.openSidebar = () => {
-            const body = document.body;
-            const data = body && body.__x ? body.__x.$data : null;
-            if (data && data.openSidebar) data.openSidebar();
+            const data = window.Alpine?.$data(document.body);
+            if (data?.openSidebar) data.openSidebar();
+        };
+
+        window.toggleSidebar = () => {
+            const data = window.Alpine?.$data(document.body);
+            if (data?.toggleSidebar) data.toggleSidebar();
         };
 
         function selectIcon(name, pickerId) {

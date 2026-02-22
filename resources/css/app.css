@@ -1,7 +1,4 @@
 @import 'tailwindcss';
-@import '../../vendor/livewire/flux/dist/flux.css';
-
-@custom-variant dark (&:where(.dark, .dark *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -15,9 +12,9 @@
     --color-primary: rgb(8, 92, 235);
 
     /* Dark navy palette */
-    --color-background-dark: #0f172a;
-    --color-surface-dark: #1e293b;
-    --color-border-dark: #334155;
+    --color-background-dark: #1a1a1a;
+    --color-surface-dark: #0d0d0d;
+    --color-border-dark: #2a2a2a;
 
     /* Legacy tokens kept for compatibility */
     --color-app-bg: #0f172a;
@@ -46,24 +43,6 @@
 
     button {
         cursor: pointer;
-    }
-
-    .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-
-    .icon-opt {
-        border-radius: 0.5rem;
-        transition: background 0.12s ease;
-    }
-
-    .icon-opt:hover {
-        background: #1e293b;
-    }
-
-    .icon-opt.chosen {
-        background: #1e293b;
-        outline: 2px solid var(--color-primary);
     }
 
     ::-webkit-scrollbar {

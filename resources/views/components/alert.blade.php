@@ -1,12 +1,4 @@
-﻿{{--
-    Alert component
-    Props:
-      $type    = 'success' | 'error' | 'warning' | 'info'  (default: info)
-      $title   = optional heading string
-      $dismiss = bool  show x button (default: true)
-    Slot: body text/html
---}}
-@props([
+﻿@props([
     'type' => 'info',
     'title' => null,
     'dismiss' => true,
@@ -22,11 +14,12 @@
     [$border, $bg, $text, $icon] = $map[$type] ?? $map['info'];
 @endphp
 
-<div x-data="{ visible: true }" x-show="visible" x-transition:enter="transition ease-out duration-200"
-    x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
-    x-transition:leave-end="opacity-0 scale-95"
-    class="flex items-start gap-3 rounded-xl border {{ $border }} {{ $bg }} px-4 py-3 text-sm {{ $text }}"
+<div x-data="{ visible: true }" x-init="setTimeout(() => visible = false, 5000)" x-show="visible" x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 -translate-y-4 scale-95"
+    x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+    x-transition:leave-end="opacity-0 -translate-y-4 scale-95"
+    class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-start gap-3 rounded-xl border {{ $border }} {{ $bg }} px-4 py-3 text-sm {{ $text }} shadow-lg min-w-[300px] max-w-[90vw]"
     role="alert">
 
     <span class="material-symbols-outlined text-[18px] mt-0.5 shrink-0 opacity-80"

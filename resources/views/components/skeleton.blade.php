@@ -1,10 +1,3 @@
-{{--
-    Skeleton loader component.
-    Props:
-      $rows   = number of skeleton rows (default: 4)
-      $avatar = show circle avatar on left (default: false)
-      $lines  = number of text lines per row (default: 2)
---}}
 @props([
     'rows' => 4,
     'avatar' => false,

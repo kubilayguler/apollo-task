@@ -10,17 +10,38 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
-        $projects = auth()->user()->projects()->withCount('tasks')->latest()->get();
+        $projects = auth()->user()->projects()
+            ->withCount('tasks')
+            ->withCount(['tasks as completed_tasks_count' => function ($query) {
+                $query->where('status', 'completed');
+            }])
+            ->latest()
+            ->get();
 
         $selectedProject = null;
         $tasks = collect();
+        $recentTasks = collect();
 
         if ($request->filled('project')) {
             $selectedProject = auth()->user()->projects()->findOrFail($request->project);
             $tasks = $selectedProject->tasks()->orderBy('order')->orderBy('created_at', 'desc')->get();
-        }
+            return view('dashboard', compact('projects', 'selectedProject', 'tasks'));
+        } else {
+            // Fetch recent tasks across all projects for the home page
+            $recentTasks = auth()->user()->tasks()->with('project')->latest()->take(5)->get();
+            
+            // Calculate completion percentage for projects
+            $projects->each(function ($project) {
+                $totalTasks = $project->tasks_count;
+                $completedTasks = $project->completed_tasks_count;
+                $project->completion_percentage = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+            });
+            
+            // Get all tasks for the calendar
+            $allTasks = auth()->user()->tasks()->whereNotNull('due_date')->get();
 
-        return view('dashboard', compact('projects', 'selectedProject', 'tasks'));
+            return view('home', compact('projects', 'recentTasks', 'allTasks'));
+        }
     }
 
     public function store(Request $request)

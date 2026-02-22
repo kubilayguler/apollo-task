@@ -29,10 +29,33 @@ class TaskController extends Controller
     {
         abort_unless($task->project->user_id === auth()->id(), 403);
 
+        $newStatus = $task->status === 'completed' ? 'todo' : 'completed';
+        $completedAt = $newStatus === 'completed' ? now() : null;
+
         $task->update([
-            'status'       => $task->status === 'completed' ? 'todo' : 'completed',
-            'completed_at' => $task->status === 'completed' ? null : now(),
+            'status'       => $newStatus,
+            'completed_at' => $completedAt,
         ]);
+
+        // When a parent task is completed, also complete all subtasks
+        if ($newStatus === 'completed') {
+            $task->subtasks()
+                ->where('status', '!=', 'completed')
+                ->update([
+                    'status'       => 'completed',
+                    'completed_at' => now(),
+                ]);
+        }
+
+        // When a parent task is unchecked, also uncheck all subtasks
+        if ($newStatus === 'todo') {
+            $task->subtasks()
+                ->where('status', 'completed')
+                ->update([
+                    'status'       => 'todo',
+                    'completed_at' => null,
+                ]);
+        }
 
         return back();
     }

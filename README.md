@@ -1,59 +1,214 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
 
-## About Laravel
+> **Note:** The Docker setup has not been fully tested yet due to insufficient internet connectivity during development. The application runs without issues in the local development environment. The `docker-compose.yml` and all related Docker configuration files are included and ready — end-to-end Docker testing will be completed and this section updated as soon as a stable connection is available.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Quick Start (Docker)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/todo-app.git
+cd todo-app
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Open `.env.docker` and set your **Gemini API key**:
 
-## Learning Laravel
+```dotenv
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```bash
+# 2. Build and start all services (DB + App + Nginx) in the background
+docker compose up --build -d
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# 3. Open the app in your browser
+#    http://localhost:8000
+```
 
-## Laravel Sponsors
+> On first start the container automatically runs all database migrations — the schema is ready immediately with no extra commands needed.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+To stop:
 
-### Premium Partners
+```bash
+docker compose down
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+To stop and wipe the database volume:
 
-## Contributing
+```bash
+docker compose down -v
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## What Runs Inside Docker
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Container | Image | Role |
+|---|---|---|
+| `todo_db` | `postgres:16-alpine` | Persistent PostgreSQL database |
+| `todo_app` | Custom PHP 8.2-FPM | Laravel application |
+| `todo_nginx` | `nginx:1.27-alpine` | HTTP server exposed on port **8000** |
 
-## Security Vulnerabilities
+Frontend assets (Vite + Tailwind CSS) are **compiled at image build time** using Node 20 — no separate Node service is needed at runtime.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Local Development (without Docker)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm install
+composer run dev   # starts Laravel, Vite, queue listener, and log watcher concurrently
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `APP_KEY` | Laravel encryption key — auto-generated on first Docker boot |
+| `DB_DATABASE` | Database name (default: `todo_app`) |
+| `DB_USERNAME` | Database user (default: `todo_user`) |
+| `DB_PASSWORD` | Database password (default: `secret`) |
+| `GEMINI_API_KEY` | **Required for AI features.** Get one at [aistudio.google.com](https://aistudio.google.com/) |
+| `GEMINI_MODEL` | Model override (default: `gemini-2.5-flash`) |
+| `APP_PORT` | Host port the app is exposed on (default: `8000`) |
+
+---
+
+## AI Integration
+
+The AI assistant is built on the official **[Laravel AI SDK](https://github.com/laravel/ai)** (`laravel/ai`) which wraps the **Google Gemini** API.
+
+### How it works
+
+1. The user either types a free-form natural-language command in the AI input bar, or clicks the **AI Edit / Break Down** button on an existing task.
+2. The request is sent to `TodoAiService`, which builds a strict **system prompt** that constrains Gemini to respond with pure JSON only.
+3. Gemini returns a structured JSON object containing an `action`, a `parameters` block, and a short `feedback_message`.
+4. `AiAssistantController` validates and executes the action against the database inside a transaction.
+
+### Supported AI actions
+
+| Action | What it does |
+|---|---|
+| `create_tasks` | Creates one or more tasks (with optional sub-tasks) in a project |
+| `split_existing_task` | Breaks a single task into multiple sub-tasks |
+| `auto_schedule` | Sets due dates across a list of tasks based on context |
+| `optimize_description` | Rewrites a task's content to be clearer and more actionable |
+| `update_task` | Edits the title, priority, status, or due date of an existing task |
+
+---
+
+## API Reference
+
+All routes require an authenticated session. Unauthenticated requests are redirected to `/login`.
+
+### Auth
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/register` | Show registration form |
+| `POST` | `/register` | Register a new user |
+| `GET` | `/login` | Show login form |
+| `POST` | `/login` | Authenticate user |
+| `POST` | `/logout` | Log out current user |
+
+### Dashboard
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/dashboard` | Main dashboard — lists all projects and tasks |
+
+### Projects
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/projects` | Create a new project |
+| `PUT` | `/projects/{project}` | Update project name, description, or icon |
+| `DELETE` | `/projects/{id}` | Delete a project and all its tasks |
+| `GET` | `/projects/{project}/settings` | Project settings page |
+
+### Tasks
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/projects/{project}/tasks` | Create a task inside a project |
+| `POST` | `/tasks/{task}/toggle` | Toggle task status between `todo` and `completed` |
+| `DELETE` | `/tasks/{task}` | Delete a task |
+
+### AI Assistant
+
+These routes live under the `/api` prefix and require a valid session (`web` + `auth` middleware).
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/ai/text-command` | Natural-language command → creates or edits tasks |
+| `POST` | `/api/ai/tasks/{task}/action` | Contextual AI action on an existing task |
+
+#### POST `/api/ai/text-command`
+
+**Request body:**
+```json
+{
+  "command": "Add three tasks for onboarding a new developer by Friday",
+  "project_id": 4
+}
+```
+
+**Success response:**
+```json
+{
+  "success": true,
+  "action": "create_tasks",
+  "message": "Created 3 onboarding tasks for you!",
+  "data": { "..." }
+}
+```
+
+#### POST `/api/ai/tasks/{task}/action`
+
+**Request body:**
+```json
+{
+  "action_type": "split_existing_task"
+}
+```
+
+**Success response:**
+```json
+{
+  "success": true,
+  "action": "split_existing_task",
+  "message": "Task split into 4 sub-tasks.",
+  "data": { "..." }
+}
+```
+
+---
+
+## Database Schema
+
+```
+users     – id, name, email, password, timestamps
+projects  – id, user_id (FK), name, description, slug, icon, is_archived, timestamps
+tasks     – id, project_id (FK), parent_id (FK self-ref), title, content,
+            priority (none|low|medium|high), status (todo|in_progress|completed),
+            due_date, completed_at, order, timestamps
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | PHP 8.2, Laravel 12 |
+| Frontend | Blade, Tailwind CSS v4, Alpine.js, FullCalendar, Flatpickr |
+| Build tool | Vite 7 |
+| AI | Google Gemini via `laravel/ai` |
+| Database | PostgreSQL 16 (Docker) / SQLite (local dev) |
+| Web server | Nginx 1.27 |
+| Container | Docker + Docker Compose |

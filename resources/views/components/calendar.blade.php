@@ -4,6 +4,12 @@
     <h3 class="mb-4 text-sm font-bold text-app-text flex items-center gap-2">
         <span class="material-symbols-outlined text-[18px] text-primary">calendar_month</span>
         Calendar
+        <button type="button"
+            onclick="if(window.Alpine){ const d=Alpine.$data(document.querySelector('[x-data]')); if(d) d.activeModal='ai-home-modal'; }"
+            class="ml-auto inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md shadow-purple-500/20 hover:shadow-purple-500/40 hover:scale-105 transition-all">
+            <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+            AI Planner
+        </button>
     </h3>
     <div x-ref="calendar" class="min-h-[400px] text-xs"></div>
 </div>

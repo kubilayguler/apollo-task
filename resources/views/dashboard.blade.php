@@ -113,11 +113,11 @@
 
             <div x-data="taskManager()" class="space-y-4">
                 <style>
-                    .filter-pending .task-row[data-status="completed"] {
+                    .filter-pending .task-group[data-status="completed"] {
                         display: none !important;
                     }
 
-                    .filter-completed .task-row[data-status="pending"] {
+                    .filter-completed .task-group[data-status="pending"] {
                         display: none !important;
                     }
                 </style>
@@ -181,99 +181,228 @@
                     <div class="space-y-2 transition-opacity duration-200" x-ref="taskList"
                         :class="['filter-' + filter, isLocalLoading ? 'opacity-50' : 'opacity-100']">
                         @forelse ($tasks as $task)
-                            @php
-                                $dueAt = $task->due_date;
-                                $isCompleted = $task->status === 'completed';
-                                $isPending = !$isCompleted;
-                                $isOverdue = $dueAt && $isPending && $dueAt->isPast();
-
-                                $priority = strtolower($task->priority ?? 'none');
-                                $priorityClass = match ($priority) {
-                                    'high' => 'bg-red-500/20 border-red-500/30 border-1 text-red-500',
-                                    'medium' => 'bg-yellow-600/20 border-yellow-600/30 border-1 text-yellow-500',
-                                    'low' => 'bg-blue-600/20 border-blue-600/30 border-1 text-blue-500',
-                                    default => 'bg-slate-500/20 border-slate-500/30 border-1 text-slate-500',
-                                };
-
-                                $dueText = null;
-                                if ($dueAt) {
-                                    if ($dueAt->copy()->startOfDay()->isPast() && !$dueAt->isToday()) {
-                                        $dueText = 'Overdue';
-                                    } elseif ($dueAt->isToday()) {
-                                        $dueText = 'Due Today';
-                                    } elseif ($dueAt->isTomorrow()) {
-                                        $dueText = 'Due Tomorrow';
-                                    } else {
-                                        $daysLeft = now()
-                                            ->startOfDay()
-                                            ->diffInDays($dueAt->copy()->startOfDay(), false);
-                                        if ($daysLeft <= 7) {
-                                            $dueText = $daysLeft . ' days left';
-                                        } else {
-                                            $dueText = 'Due ' . $dueAt->format('M d');
-                                        }
-                                    }
-                                }
-                                $completedText = $task->completed_at
-                                    ? 'Completed ' . $task->completed_at->diffForHumans()
-                                    : 'Completed just now';
-                            @endphp
-                            <article
-                                class="task-row flex items-start gap-2.5 rounded-xl border border-border-dark bg-surface-dark/40 hover:bg-surface-dark/60 px-3 py-2.5 transition-opacity duration-200 {{ $isCompleted ? 'opacity-50' : '' }}"
-                                data-status="{{ $isCompleted ? 'completed' : 'pending' }}"
-                                data-priority="{{ $priority === 'high' ? 3 : ($priority === 'medium' ? 2 : ($priority === 'low' ? 1 : 0)) }}"
+                            <div class="task-group"
+                                data-status="{{ $task->status === 'completed' ? 'completed' : 'pending' }}"
+                                data-priority="{{ ($p = strtolower($task->priority ?? 'none')) === 'high' ? 3 : ($p === 'medium' ? 2 : ($p === 'low' ? 1 : 0)) }}"
                                 data-name="{{ strtolower($task->title) }}"
                                 data-time="{{ $task->created_at->timestamp }}">
-                                <form action="{{ route('tasks.toggle', $task->id) }}" method="POST"
-                                    class="task-toggle-form" @submit.prevent="toggleTask($event, $el)">
-                                    @csrf
-                                    <button type="submit" data-done="{{ $task->status === 'completed' ? '1' : '0' }}"
-                                        class="cb-btn mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors {{ $isCompleted ? 'border-blue-500 bg-blue-600 text-white' : 'border-border-dark bg-transparent' }}">
-                                        @if ($isCompleted)
-                                            <span class="material-symbols-outlined block leading-none text-[10px]"
-                                                style="font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 24">check</span>
-                                        @endif
-                                    </button>
-                                </form>
+                                @php
+                                    $dueAt = $task->due_date;
+                                    $isCompleted = $task->status === 'completed';
+                                    $isPending = !$isCompleted;
+                                    $isOverdue = $dueAt && $isPending && $dueAt->isPast();
 
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <p @click="$event.target.closest('.task-row').querySelector('.task-toggle-form').dispatchEvent(new Event('submit', {cancelable: true}))"
-                                            class="task-title truncate text-sm leading-tight font-medium cursor-pointer transition-colors {{ $isCompleted ? 'line-through text-app-muted' : 'text-white' }}">
-                                            {{ $task->title }}
-                                        </p>
-                                    </div>
+                                    $priority = strtolower($task->priority ?? 'none');
+                                    $priorityClass = match ($priority) {
+                                        'high' => 'bg-red-500/20 border-red-500/30 border-1 text-red-500',
+                                        'medium' => 'bg-yellow-600/20 border-yellow-600/30 border-1 text-yellow-500',
+                                        'low' => 'bg-blue-600/20 border-blue-600/30 border-1 text-blue-500',
+                                        default => 'bg-slate-500/20 border-slate-500/30 border-1 text-slate-500',
+                                    };
 
-                                    <div
-                                        class="task-meta mt-1 flex flex-wrap items-center gap-2 truncate text-xs text-app-muted">
-                                        <span
-                                            class="inline-flex rounded-sm px-1.5 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide {{ $priorityClass }}">
-                                            {{ $priority === 'none' ? 'No Priority' : strtoupper($priority) . ' Priority' }}
-                                        </span>
-
-                                        <span
-                                            class="due-date-display flex items-center gap-1 {{ $isCompleted ? 'hidden' : '' }}">
-                                            @if ($dueText)
-                                                <span class="material-symbols-outlined text-[14px]">calendar_today</span>
-                                                <span>{{ $dueText }}</span>
+                                    $dueText = null;
+                                    if ($dueAt) {
+                                        if ($dueAt->copy()->startOfDay()->isPast() && !$dueAt->isToday()) {
+                                            $dueText = 'Overdue';
+                                        } elseif ($dueAt->isToday()) {
+                                            $dueText = 'Due Today';
+                                        } elseif ($dueAt->isTomorrow()) {
+                                            $dueText = 'Due Tomorrow';
+                                        } else {
+                                            $daysLeft = now()
+                                                ->startOfDay()
+                                                ->diffInDays($dueAt->copy()->startOfDay(), false);
+                                            if ($daysLeft <= 7) {
+                                                $dueText = $daysLeft . ' days left';
+                                            } else {
+                                                $dueText = 'Due ' . $dueAt->format('M d');
+                                            }
+                                        }
+                                    }
+                                    $completedText = $task->completed_at
+                                        ? 'Completed ' . $task->completed_at->diffForHumans()
+                                        : 'Completed just now';
+                                @endphp
+                                <article
+                                    class="task-row flex items-start gap-2.5 rounded-xl border border-border-dark bg-surface-dark/40 hover:bg-surface-dark/60 px-3 py-2.5 transition-opacity duration-200 {{ $isCompleted ? 'opacity-50' : '' }}"
+                                    data-task-id="{{ $task->id }}"
+                                    data-status="{{ $isCompleted ? 'completed' : 'pending' }}"
+                                    data-priority="{{ $priority === 'high' ? 3 : ($priority === 'medium' ? 2 : ($priority === 'low' ? 1 : 0)) }}"
+                                    data-name="{{ strtolower($task->title) }}"
+                                    data-time="{{ $task->created_at->timestamp }}">
+                                    <form action="{{ route('tasks.toggle', $task->id) }}" method="POST"
+                                        class="task-toggle-form" @submit.prevent="toggleTask($event, $el)">
+                                        @csrf
+                                        <button type="submit"
+                                            data-done="{{ $task->status === 'completed' ? '1' : '0' }}"
+                                            class="cb-btn mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors {{ $isCompleted ? 'border-blue-500 bg-blue-600 text-white' : 'border-border-dark bg-transparent' }}">
+                                            @if ($isCompleted)
+                                                <span class="material-symbols-outlined block leading-none text-[10px]"
+                                                    style="font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 24">check</span>
                                             @endif
-                                        </span>
+                                        </button>
+                                    </form>
 
-                                        <span
-                                            class="completed-date-display flex items-center gap-1 {{ !$isCompleted ? 'hidden' : '' }}">
-                                            <span class="material-symbols-outlined text-[14px]">task_alt</span>
-                                            <span class="completed-text">{{ $completedText }}</span>
-                                        </span>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p @click="$event.target.closest('.task-row').querySelector('.task-toggle-form').dispatchEvent(new Event('submit', {cancelable: true}))"
+                                                class="task-title truncate text-sm leading-tight font-medium cursor-pointer transition-colors {{ $isCompleted ? 'line-through text-app-muted' : 'text-white' }}">
+                                                {{ $task->title }}
+                                            </p>
+                                        </div>
+
+                                        <div
+                                            class="task-meta mt-1 flex flex-wrap items-center gap-2 truncate text-xs text-app-muted">
+                                            <span
+                                                class="inline-flex rounded-sm px-1.5 py-0.5 text-center text-[10px] font-semibold uppercase tracking-wide {{ $priorityClass }}">
+                                                {{ $priority === 'none' ? 'No Priority' : strtoupper($priority) . ' Priority' }}
+                                            </span>
+
+                                            <span
+                                                class="due-date-display flex items-center gap-1 {{ $isCompleted ? 'hidden' : '' }}">
+                                                @if ($dueText)
+                                                    <span
+                                                        class="material-symbols-outlined text-[14px]">calendar_today</span>
+                                                    <span>{{ $dueText }}</span>
+                                                @endif
+                                            </span>
+
+                                            <span
+                                                class="completed-date-display flex items-center gap-1 {{ !$isCompleted ? 'hidden' : '' }}">
+                                                <span class="material-symbols-outlined text-[14px]">task_alt</span>
+                                                <span class="completed-text">{{ $completedText }}</span>
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <form action="{{ route('tasks.destroy', $task->id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                        class="rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] font-medium text-red-300 hover:bg-red-500/10">Delete</button>
-                                </form>
-                            </article>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        @if ($task->subtasks->count())
+                                            <button type="button"
+                                                @click="$el.closest('article').nextElementSibling.classList.toggle('hidden'); $el.querySelector('.expand-icon').classList.toggle('rotate-180')"
+                                                class="rounded-md border border-border-dark px-1.5 py-0.5 text-[11px] font-medium text-app-muted hover:bg-surface-dark transition-colors flex items-center gap-0.5"
+                                                title="Toggle subtasks">
+                                                <span
+                                                    class="material-symbols-outlined text-[14px] expand-icon transition-transform">expand_more</span>
+                                                <span class="text-[10px]">{{ $task->subtasks->count() }}</span>
+                                            </button>
+                                        @endif
+
+                                        <button type="button"
+                                            @click="$dispatch('open-ai-task', { id: {{ $task->id }}, title: '{{ addslashes($task->title) }}' })"
+                                            class="rounded-md border border-primary/30 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
+                                            title="AI Actions">
+                                            <span class="material-symbols-outlined text-[13px]">auto_awesome</span>
+                                            <span class="hidden sm:inline">AI</span>
+                                        </button>
+
+                                        <form action="{{ route('tasks.destroy', $task->id) }}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                class="rounded-md border border-red-500/30 px-2 py-0.5 text-[11px] font-medium text-red-300 hover:bg-red-500/10">Delete</button>
+                                        </form>
+                                    </div>
+                                </article>
+
+                                {{-- Subtasks --}}
+                                @if ($task->subtasks->count())
+                                    <div class="ml-7 space-y-1 py-1" data-parent-subtasks="{{ $task->id }}">
+                                        @foreach ($task->subtasks as $sub)
+                                            @php
+                                                $subCompleted = $sub->status === 'completed';
+                                                $subPriority = strtolower($sub->priority ?? 'none');
+                                                $subPriorityClass = match ($subPriority) {
+                                                    'high' => 'bg-red-500/20 border-red-500/30 border-1 text-red-500',
+                                                    'medium'
+                                                        => 'bg-yellow-600/20 border-yellow-600/30 border-1 text-yellow-500',
+                                                    'low' => 'bg-blue-600/20 border-blue-600/30 border-1 text-blue-500',
+                                                    default
+                                                        => 'bg-slate-500/20 border-slate-500/30 border-1 text-slate-500',
+                                                };
+                                                $subDueAt = $sub->due_date;
+                                                $subDueText = null;
+                                                if ($subDueAt) {
+                                                    if (
+                                                        $subDueAt->copy()->startOfDay()->isPast() &&
+                                                        !$subDueAt->isToday()
+                                                    ) {
+                                                        $subDueText = 'Overdue';
+                                                    } elseif ($subDueAt->isToday()) {
+                                                        $subDueText = 'Due Today';
+                                                    } elseif ($subDueAt->isTomorrow()) {
+                                                        $subDueText = 'Due Tomorrow';
+                                                    } else {
+                                                        $dLeft = now()
+                                                            ->startOfDay()
+                                                            ->diffInDays($subDueAt->copy()->startOfDay(), false);
+                                                        $subDueText =
+                                                            $dLeft <= 7
+                                                                ? $dLeft . ' days left'
+                                                                : 'Due ' . $subDueAt->format('M d');
+                                                    }
+                                                }
+                                                $subCompletedText = $sub->completed_at
+                                                    ? 'Completed ' . $sub->completed_at->diffForHumans()
+                                                    : 'Completed just now';
+                                            @endphp
+                                            <div class="task-row subtask-row flex items-start gap-2 rounded-lg bg-surface-dark/30 hover:bg-surface-dark/50 px-3 py-1.5 transition-opacity duration-200 {{ $subCompleted ? 'opacity-50' : '' }}"
+                                                data-status="{{ $subCompleted ? 'completed' : 'pending' }}"
+                                                data-priority="{{ $subPriority === 'high' ? 3 : ($subPriority === 'medium' ? 2 : ($subPriority === 'low' ? 1 : 0)) }}"
+                                                data-name="{{ strtolower($sub->title) }}"
+                                                data-time="{{ $sub->created_at->timestamp }}"
+                                                data-parent="{{ $task->id }}">
+                                                <form action="{{ route('tasks.toggle', $sub->id) }}" method="POST"
+                                                    class="task-toggle-form" @submit.prevent="toggleTask($event, $el)">
+                                                    @csrf
+                                                    <button type="submit" data-done="{{ $subCompleted ? '1' : '0' }}"
+                                                        class="cb-btn mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors {{ $subCompleted ? 'border-blue-500 bg-blue-600 text-white' : 'border-border-dark bg-transparent' }}">
+                                                        @if ($subCompleted)
+                                                            <span
+                                                                class="material-symbols-outlined block leading-none text-[8px]"
+                                                                style="font-variation-settings:'FILL' 1,'wght' 600,'GRAD' 0,'opsz' 24">check</span>
+                                                        @endif
+                                                    </button>
+                                                </form>
+                                                <div class="min-w-0 flex-1">
+                                                    <p @click="$event.target.closest('.task-row').querySelector('.task-toggle-form').dispatchEvent(new Event('submit', {cancelable: true}))"
+                                                        class="task-title truncate text-xs leading-tight font-medium cursor-pointer transition-colors {{ $subCompleted ? 'line-through text-app-muted' : 'text-app-text' }}">
+                                                        {{ $sub->title }}
+                                                    </p>
+                                                    <div
+                                                        class="task-meta mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-app-muted">
+                                                        <span
+                                                            class="inline-flex rounded-sm px-1 py-0.5 text-center text-[9px] font-semibold uppercase tracking-wide {{ $subPriorityClass }}">
+                                                            {{ $subPriority === 'none' ? '-' : strtoupper($subPriority) }}
+                                                        </span>
+                                                        @if (!$subCompleted && $subDueText)
+                                                            <span class="due-date-display flex items-center gap-0.5">
+                                                                <span
+                                                                    class="material-symbols-outlined text-[12px]">calendar_today</span>
+                                                                <span>{{ $subDueText }}</span>
+                                                            </span>
+                                                        @endif
+                                                        @if ($subCompleted)
+                                                            <span class="completed-date-display flex items-center gap-0.5">
+                                                                <span
+                                                                    class="material-symbols-outlined text-[12px]">task_alt</span>
+                                                                <span
+                                                                    class="completed-text">{{ $subCompletedText }}</span>
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                                <form action="{{ route('tasks.destroy', $sub->id) }}" method="POST"
+                                                    class="shrink-0">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="rounded-md border border-red-500/30 px-1.5 py-0.5 text-[10px] font-medium text-red-300 hover:bg-red-500/10">Del</button>
+                                                </form>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
                         @empty
                             <div
                                 class="rounded-xl border border-dashed border-border-dark px-4 py-10 text-center text-sm text-app-muted">
@@ -314,18 +443,17 @@
                 sortTasks() {
                     const container = this.$refs.taskList;
                     if (!container) return;
-                    const tasks = Array.from(container.querySelectorAll('.task-row'));
-                    tasks.sort((a, b) => {
+                    const groups = Array.from(container.querySelectorAll(':scope > .task-group'));
+                    groups.sort((a, b) => {
                         if (this.sort === 'priority') {
                             return b.dataset.priority - a.dataset.priority;
                         } else if (this.sort === 'name') {
                             return a.dataset.name.localeCompare(b.dataset.name);
                         } else {
-                            // time
                             return b.dataset.time - a.dataset.time;
                         }
                     });
-                    tasks.forEach(task => container.appendChild(task));
+                    groups.forEach(g => container.appendChild(g));
                 },
                 toggleTask(event, form) {
                     const btn = form.querySelector('button');
@@ -335,6 +463,53 @@
                     const dueDateDisplay = article.querySelector('.due-date-display');
                     const completedDateDisplay = article.querySelector('.completed-date-display');
                     const completedText = article.querySelector('.completed-text');
+
+                    const markCompleted = (el) => {
+                        const b = el.querySelector('.cb-btn');
+                        const t = el.querySelector('.task-title');
+                        const dd = el.querySelector('.due-date-display');
+                        const cd = el.querySelector('.completed-date-display');
+                        const ct = el.querySelector('.completed-text');
+                        if (b) {
+                            b.dataset.done = '1';
+                            b.classList.remove('border-border-dark', 'bg-transparent');
+                            b.classList.add('border-blue-500', 'bg-blue-600', 'text-white');
+                            b.innerHTML =
+                                '<span class="material-symbols-outlined block leading-none text-[8px]" style="font-variation-settings:\'FILL\' 1,\'wght\' 600,\'GRAD\' 0,\'opsz\' 24">check</span>';
+                        }
+                        if (t) {
+                            t.classList.remove('text-white', 'text-app-text');
+                            t.classList.add('line-through', 'text-app-muted');
+                        }
+                        el.dataset.status = 'completed';
+                        el.classList.add('opacity-50');
+                        if (dd) dd.classList.add('hidden');
+                        if (cd) {
+                            cd.classList.remove('hidden');
+                            if (ct) ct.textContent = 'Completed just now';
+                        }
+                    };
+
+                    const markUncompleted = (el) => {
+                        const b = el.querySelector('.cb-btn');
+                        const t = el.querySelector('.task-title');
+                        const dd = el.querySelector('.due-date-display');
+                        const cd = el.querySelector('.completed-date-display');
+                        if (b) {
+                            b.dataset.done = '0';
+                            b.classList.remove('border-blue-500', 'bg-blue-600', 'text-white');
+                            b.classList.add('border-border-dark', 'bg-transparent');
+                            b.innerHTML = '';
+                        }
+                        if (t) {
+                            t.classList.remove('line-through', 'text-app-muted');
+                            t.classList.add('text-app-text');
+                        }
+                        el.dataset.status = 'pending';
+                        el.classList.remove('opacity-50');
+                        if (dd) dd.classList.remove('hidden');
+                        if (cd) cd.classList.add('hidden');
+                    };
 
                     // Optimistic UI update
                     if (isCompleted) {
@@ -346,9 +521,24 @@
                         title.classList.add('text-white');
                         article.dataset.status = 'pending';
                         article.classList.remove('opacity-50');
+                        // Update parent group status
+                        const group = article.closest('.task-group');
+                        if (group) group.dataset.status = 'pending';
 
                         if (dueDateDisplay) dueDateDisplay.classList.remove('hidden');
                         if (completedDateDisplay) completedDateDisplay.classList.add('hidden');
+
+                        // Also visually uncheck all subtasks of this parent
+                        if (!article.classList.contains('subtask-row')) {
+                            const taskId = article.dataset.taskId;
+                            if (taskId) {
+                                document.querySelectorAll(`.subtask-row[data-parent="${taskId}"]`)
+                                    .forEach(sub => {
+                                        if (sub.dataset.status === 'completed') markUncompleted(
+                                        sub);
+                                    });
+                            }
+                        }
                     } else {
                         btn.dataset.done = '1';
                         btn.classList.remove('border-border-dark', 'bg-transparent');
@@ -359,11 +549,25 @@
                         title.classList.add('line-through', 'text-app-muted');
                         article.dataset.status = 'completed';
                         article.classList.add('opacity-50');
+                        // Update parent group status
+                        const group = article.closest('.task-group');
+                        if (group) group.dataset.status = 'completed';
 
                         if (dueDateDisplay) dueDateDisplay.classList.add('hidden');
                         if (completedDateDisplay) {
                             completedDateDisplay.classList.remove('hidden');
                             if (completedText) completedText.textContent = 'Completed just now';
+                        }
+
+                        // Also visually complete all subtasks of this parent
+                        if (!article.classList.contains('subtask-row')) {
+                            const taskId = article.dataset.taskId;
+                            if (taskId) {
+                                document.querySelectorAll(`.subtask-row[data-parent="${taskId}"]`)
+                                    .forEach(sub => {
+                                        if (sub.dataset.status !== 'completed') markCompleted(sub);
+                                    });
+                            }
                         }
                     }
 

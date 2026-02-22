@@ -24,7 +24,12 @@ class ProjectController extends Controller
 
         if ($request->filled('project')) {
             $selectedProject = auth()->user()->projects()->findOrFail($request->project);
-            $tasks = $selectedProject->tasks()->orderBy('order')->orderBy('created_at', 'desc')->get();
+            $tasks = $selectedProject->tasks()
+                ->whereNull('parent_id')
+                ->with(['subtasks' => fn($q) => $q->orderBy('order')->orderBy('created_at', 'desc')])
+                ->orderBy('order')
+                ->orderBy('created_at', 'desc')
+                ->get();
             return view('dashboard', compact('projects', 'selectedProject', 'tasks'));
         } else {
             // Fetch recent tasks across all projects for the home page
@@ -37,8 +42,8 @@ class ProjectController extends Controller
                 $project->completion_percentage = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
             });
             
-            // Get all tasks for the calendar
-            $allTasks = auth()->user()->tasks()->whereNotNull('due_date')->get();
+            // Get all tasks for the calendar (exclude subtasks)
+            $allTasks = auth()->user()->tasks()->whereNull('parent_id')->whereNotNull('due_date')->get();
 
             return view('home', compact('projects', 'recentTasks', 'allTasks'));
         }

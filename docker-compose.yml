@@ -1,0 +1,69 @@
+services:
+  # ─── PostgreSQL Database ─────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: todo_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-todo_app}
+      POSTGRES_USER: ${DB_USERNAME:-todo_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - todo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-todo_user} -d ${DB_DATABASE:-todo_app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─── Laravel PHP-FPM Application ──────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: todo_app
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-todo_app}
+      DB_USERNAME: ${DB_USERNAME:-todo_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks:
+      - todo_network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ─── Nginx Web Server ──────────────────────────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: nginx
+    container_name: todo_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - app_storage:/var/www/html/storage:ro
+    networks:
+      - todo_network
+    depends_on:
+      - app
+
+volumes:
+  db_data:
+  app_storage:
+
+networks:
+  todo_network:
+    driver: bridge

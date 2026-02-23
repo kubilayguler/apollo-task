@@ -46,14 +46,17 @@ WORKDIR /var/www/html
 # Copy composer files first for layer caching
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies (no dev, optimised autoloader)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Install PHP dependencies without running scripts (artisan doesn't exist yet)
+RUN composer install --no-interaction --no-scripts --no-dev
 
-# Copy application source
+# Copy application source (artisan is now present)
 COPY . .
 
 # Embed the built frontend assets
 COPY --from=node_builder /app/public/build ./public/build
+
+# Re-generate optimised autoload and run post-install scripts (package:discover etc.)
+RUN composer dump-autoload --optimize --no-dev
 
 # Storage and bootstrap/cache permissions
 RUN mkdir -p storage/framework/{sessions,views,cache} \

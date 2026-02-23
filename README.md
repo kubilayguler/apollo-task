@@ -1,7 +1,3 @@
-
-
-> **Note:** The Docker setup has not been fully tested yet due to insufficient internet connectivity during development. The application runs without issues in the local development environment. The `docker-compose.yml` and all related Docker configuration files are included and ready — end-to-end Docker testing will be completed and this section updated as soon as a stable connection is available.
-
 ## Quick Start (Docker)
 
 ```bash
@@ -13,29 +9,34 @@ cd todo-app
 cp .env.docker.example .env.docker
 ```
 
-Open `.env.docker` and set your **Gemini API key**:
+Open `.env.docker` and set your Gemini API key:
 
 ```dotenv
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ```bash
-# 3. Build and start all services (DB + App + Nginx) in the background
+# 3. Build and start all services
 docker compose up --build -d
-
-# 4. Open the app in your browser
-#    http://localhost:8000
 ```
 
-> On first start the container automatically runs all database migrations — the schema is ready immediately with no extra commands needed.
+Open: `http://localhost:8000`
 
-To stop:
+On first start, migrations run automatically.
+
+If you change `.env.docker` later, recreate only the app container:
+
+```bash
+docker compose up -d --force-recreate app
+```
+
+Stop containers:
 
 ```bash
 docker compose down
 ```
 
-To stop and wipe the database volume:
+Stop and wipe database volume:
 
 ```bash
 docker compose down -v

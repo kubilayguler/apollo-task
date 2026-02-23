@@ -27,8 +27,6 @@ services:
       target: app
     container_name: todo_app
     restart: unless-stopped
-    env_file:
-      - .env.docker
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -37,6 +35,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - app_storage:/var/www/html/storage
+      - ./.env.docker:/var/www/html/.env.docker:ro
     networks:
       - todo_network
     depends_on:

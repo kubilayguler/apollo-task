@@ -49,7 +49,7 @@ docker compose down -v
 | Container | Image | Role |
 |---|---|---|
 | `todo_db` | `postgres:16-alpine` | Persistent PostgreSQL database |
-| `todo_app` | Custom PHP 8.2-FPM | Laravel application |
+| `todo_app` | Custom PHP 8.4-FPM | Laravel application |
 | `todo_nginx` | `nginx:1.27-alpine` | HTTP server exposed on port **8000** |
 
 Frontend assets (Vite + Tailwind CSS) are **compiled at image build time** using Node 20 — no separate Node service is needed at runtime.
